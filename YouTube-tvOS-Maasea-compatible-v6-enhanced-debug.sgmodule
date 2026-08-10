@@ -1,0 +1,38 @@
+#!name=YouTube 电视端增强免广告（Apple TV v6 调试版）
+#!desc=阻断 QUIC 后尝试解析 Protobuf 去除视频/Banner 广告；保留安全路径通知；远程脚本固定到 commit
+#!author=Maasea / security-pinned tvOS diagnostic build
+#!homepage=https://github.com/Maasea/sgmodule/commit/65075cdb388fc5e3094afd7e7314c67b243f3525
+
+[Rule]
+# 强制 YouTube 从 UDP/QUIC 回退到 TCP，以便 HTTPS MITM 与响应脚本有机会生效
+AND,((DOMAIN-SUFFIX,googlevideo.com),(PROTOCOL,UDP)),REJECT
+AND,((DOMAIN-SUFFIX,youtube.com),(PROTOCOL,UDP)),REJECT
+AND,((DOMAIN,youtubei.googleapis.com),(PROTOCOL,UDP)),REJECT
+
+# 静态、追踪和展示广告域名
+DOMAIN,ads.youtube.com,REJECT
+DOMAIN-SUFFIX,doubleclick.net,REJECT
+DOMAIN,www.googleadservices.com,REJECT
+DOMAIN,pagead2.googlesyndication.com,REJECT
+DOMAIN,ade.googlesyndication.com,REJECT
+DOMAIN,tpc.googlesyndication.com,REJECT
+
+[URL Rewrite]
+^https?:\/\/(www|s)\.youtube\.com\/api\/stats\/ads - reject-200
+^https?:\/\/(www|s)\.youtube\.com\/(pagead|ptracking) - reject-200
+^https?:\/\/s\.youtube\.com\/api\/stats\/qoe\?adcontext - reject-200
+
+[Script]
+# 隐私安全诊断：仅在 Apple TV 通知中显示 pathname，不读取查询参数、请求头、Cookie 或正文
+youtube.notify.path.www = type=http-request,pattern=^https:\/\/www\.youtube\.com\/.*,requires-body=0,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/497e7188efbaec6b16212dd4101ced0129cbf8c3/youtube-tvos-path-notify.js
+youtube.notify.path.youtubei = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/.*,requires-body=0,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/497e7188efbaec6b16212dd4101ced0129cbf8c3/youtube-tvos-path-notify.js
+
+# Maasea Protobuf 响应处理：固定 commit，避免 @master 供应链漂移
+youtube.response.youtubei = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=4194304,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.response.js,argument="{"captionLang":"off","blockUpload":true,"blockImmersive":true,"blockShorts":false,"debug":true}"
+youtube.response.www = type=http-response,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=4194304,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.response.js,argument="{"captionLang":"off","blockUpload":true,"blockImmersive":true,"blockShorts":false,"debug":true}"
+youtube.request.init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=4194304,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js,argument="{"captionLang":"off","debug":true}"
+youtube.request.log.youtubei = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=4194304,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js
+youtube.request.log.www = type=http-request,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=4194304,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js
+
+[MITM]
+hostname = %APPEND% *.googlevideo.com,www.youtube.com,s.youtube.com,youtubei.googleapis.com
