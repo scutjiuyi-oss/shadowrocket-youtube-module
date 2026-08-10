@@ -1,0 +1,22 @@
+#!name=YouTube tvOS 去广告（兼容版 v2）
+#!desc=适配 Shadowrocket tvOS 2.2.91；拆分主机匹配；固定 Maasea 脚本提交
+#!author=Maasea / security-pinned tvOS build
+#!homepage=https://github.com/Maasea/sgmodule/commit/65075cdb388fc5e3094afd7e7314c67b243f3525
+
+[Rule]
+AND,((DOMAIN,www.youtube.com),(PROTOCOL,UDP)),REJECT
+AND,((DOMAIN,youtubei.googleapis.com),(PROTOCOL,UDP)),REJECT
+AND,((DOMAIN-SUFFIX,googlevideo.com),(PROTOCOL,UDP)),REJECT
+DOMAIN,googleads.g.doubleclick.net,REJECT
+DOMAIN,www.googleadservices.com,REJECT
+DOMAIN,pagead2.googlesyndication.com,REJECT
+
+[Script]
+youtube.response.youtubei = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.response.js,argument="{"captionLang":"off","blockUpload":true,"blockImmersive":true,"blockShorts":false,"debug":false}"
+youtube.response.www = type=http-response,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.response.js,argument="{"captionLang":"off","blockUpload":true,"blockImmersive":true,"blockShorts":false,"debug":false}"
+youtube.request.init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js,argument="{"captionLang":"off"}"
+youtube.request.log.youtubei = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js
+youtube.request.log.www = type=http-request,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js
+
+[MITM]
+hostname = %APPEND% *.googlevideo.com,youtubei.googleapis.com,www.youtube.com
