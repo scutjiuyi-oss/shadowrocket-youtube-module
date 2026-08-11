@@ -1,5 +1,5 @@
 #!name=YouTube 去广告增强版（手机 + Apple TV）
-#!desc=分级 HTTPS 解密：手机端完整清洗，并针对 Apple TV 增加 www.youtube.com 播放响应处理
+#!desc=稳定版 HTTPS 解密：清洗 youtubei API 与 googlevideo 播放初始化，不解密 www.youtube.com
 #!author=scutjiuyi-oss / Maasea engine snapshot
 #!homepage=https://github.com/scutjiuyi-oss/shadowrocket-youtube-module
 
@@ -7,7 +7,6 @@
 # 阻断 YouTube QUIC，使请求回退到可进行 HTTPS 解密的 TCP
 AND,((DOMAIN-SUFFIX,googlevideo.com),(PROTOCOL,UDP)),REJECT
 AND,((DOMAIN,youtubei.googleapis.com),(PROTOCOL,UDP)),REJECT
-AND,((DOMAIN,www.youtube.com),(PROTOCOL,UDP)),REJECT
 
 # 静态广告与追踪域名
 DOMAIN,ad.doubleclick.net,REJECT
@@ -18,12 +17,9 @@ DOMAIN-SUFFIX,doubleclick.net,REJECT
 # iPhone / iPad / Apple TV 共用的 Innertube Protobuf 响应
 youtube_response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
 
-# Apple TV 仅清洗播放相关响应，避免扩大到首页、搜索等 www 接口
-youtube_tv_player_response = type=http-response,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/(player|get_watch)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
-
 # 新版 Onesie 播放初始化与密钥配置；不处理 www.youtube.com
 youtube_request_init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.request.js,argument="{"captionLang":"off"}"
 youtube_log_event = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.request.js
 
 [MITM]
-hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com, www.youtube.com
+hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com
