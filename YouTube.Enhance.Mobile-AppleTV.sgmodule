@@ -1,7 +1,7 @@
 #!name=YouTube 去广告增强版（手机 + Apple TV）
 #!desc=过滤 YouTube 视频及信息流广告，并启用后台播放与画中画；覆盖 youtubei.googleapis.com 和 www.youtube.com
-#!author=Custom / Maasea engine
-#!homepage=https://github.com/Maasea/sgmodule
+#!author=scutjiuyi-oss / Maasea engine snapshot
+#!homepage=https://github.com/scutjiuyi-oss/shadowrocket-youtube-module
 
 [Rule]
 # 阻断 YouTube QUIC，使请求回退到可进行 HTTPS 解密的 TCP
@@ -16,15 +16,15 @@ DOMAIN-SUFFIX,doubleclick.net,REJECT
 
 [Script]
 # iPhone / iPad YouTube App（Protobuf 二进制响应）
-youtube_mobile_response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/master/Script/Youtube/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
+youtube_mobile_response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
 
 # Apple TV / www.youtube.com Innertube（仅在返回 Protobuf 时适用）
-youtube_tv_response = type=http-response,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/master/Script/Youtube/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
+youtube_tv_response = type=http-response,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
 
 # 播放初始化与事件请求处理（Maasea 当前版本所需）
-youtube_request_init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/master/Script/Youtube/youtube.request.js,argument="{"captionLang":"off"}"
-youtube_mobile_log_event = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/master/Script/Youtube/youtube.request.js
-youtube_tv_log_event = type=http-request,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/master/Script/Youtube/youtube.request.js
+youtube_request_init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.request.js,argument="{"captionLang":"off"}"
+youtube_mobile_log_event = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.request.js
+youtube_tv_log_event = type=http-request,pattern=^https:\/\/www\.youtube\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.request.js
 
 [MITM]
 hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com, www.youtube.com
