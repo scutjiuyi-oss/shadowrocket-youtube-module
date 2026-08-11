@@ -1,5 +1,5 @@
 #!name=YouTube 去广告增强版（手机 + Apple TV）
-#!desc=最小化 HTTPS 解密：仅清洗 youtubei.googleapis.com，兼容使用该 API 的 iPhone/iPad/Apple TV
+#!desc=分级 HTTPS 解密：清洗 youtubei API 与 googlevideo 播放初始化，兼容 iPhone/iPad/Apple TV
 #!author=scutjiuyi-oss / Maasea engine snapshot
 #!homepage=https://github.com/scutjiuyi-oss/shadowrocket-youtube-module
 
@@ -17,5 +17,9 @@ DOMAIN-SUFFIX,doubleclick.net,REJECT
 # iPhone / iPad / Apple TV 共用的 Innertube Protobuf 响应
 youtube_response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(\?.*)?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
 
+# 新版 Onesie 播放初始化与密钥配置；不处理 www.youtube.com
+youtube_request_init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.request.js,argument="{"captionLang":"off"}"
+youtube_log_event = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/scutjiuyi-oss/shadowrocket-youtube-module/main/youtube.request.js
+
 [MITM]
-hostname = %APPEND% youtubei.googleapis.com
+hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com
