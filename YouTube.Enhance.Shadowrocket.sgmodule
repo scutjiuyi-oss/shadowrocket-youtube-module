@@ -1,0 +1,63 @@
+#!name=YouTube 去广告增强版 V3.2 · Shadowrocket
+#!desc=去广告 / 画中画 / 后台播放。在 V3.1 基础上增加广告流 (oad) 与插播 (ad_break) 拦截。需 HTTPS 解密并完全信任证书；未经设备实测。
+#!author=Joey Custom / Maasea
+#!homepage=https://github.com/Maasea/sgmodule
+
+# 配置修订：2026-10-28
+# 上游：Maasea/sgmodule，固定提交 65075cdb388fc5e3094afd7e7314c67b243f3525
+# （截至本次修订，该提交仍是上游最新提交，脚本无更新版本可换。）
+#
+# 使用前必查（任何一项不满足，广告都会照常出现）：
+# 1. Shadowrocket 全局路由设为「配置」，不能是「代理」或「直连」，否则下面的 UDP 规则不生效。
+# 2. 配置 → HTTPS 解密：开启，安装证书，并在 iOS 设置 → 通用 → 关于本机 → 证书信任设置中完全信任。
+# 3. 只保留这一个 YouTube 模块，停用其他 YouTube / 去广告类模块与重写。
+# 4. 首页 → 模块 → 本模块 → 确认两份 JS 均已下载（脚本列表里能看到）。
+#    若 raw.githubusercontent.com 无法下载，可把 script-path 换成：
+#    https://cdn.jsdelivr.net/gh/Maasea/sgmodule@65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.response.js
+#    （request.js 同理）
+# 5. 导入后彻底划掉 YouTube 后台，断开再连接 Shadowrocket，再打开 YouTube。
+
+[Rule]
+
+# 阻止 QUIC，使 YouTube 回退到可被 HTTPS 解密的 TCP。QUIC 未被拦截时，脚本完全不会命中。
+AND,((DOMAIN-SUFFIX,googlevideo.com),(PROTOCOL,UDP)),REJECT-NO-DROP
+AND,((DOMAIN,youtubei.googleapis.com),(PROTOCOL,UDP)),REJECT-NO-DROP
+
+[URL Rewrite]
+
+# 新增：广告视频流初始化请求带 oad 参数，直接返回空 200。
+# 正常视频的 videoplayback 与 dclk_video_ads 不受影响。重写先于脚本执行。
+^https?:\/\/[\w-]+\.googlevideo\.com\/(?!(?:dclk_video_ads|videoplayback\?)).+&oad - reject-200
+
+# 新增：播放中途的插播广告 (ad_break) 请求返回空 200（空 protobuf = 无广告）。
+# 若出现插播点卡住，可注释掉这一行再测。
+^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/player\/ad_break - reject-200
+
+[Script]
+
+# 首页 / 搜索 / 播放器 / Shorts / 设置 / Onesie 密钥配置响应。
+# 保留上传、选段和 Shorts 按钮；关闭字幕翻译。
+youtube.response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/(?:browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config)(?:\?[^#]*)?$,requires-body=1,max-size=-1,binary-body-mode=1,timeout=20,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.response.js,argument="{"captionLang":"off","blockUpload":false,"blockImmersive":false,"blockShorts":false,"debug":false}"
+
+# InitPlayback (Onesie)：仅处理带 ack 参数的请求。
+# 命中缓存密钥时，上游 JS 会把请求改向 https://init-stream.maasea.workers.dev/ 去除广告，
+# 该 URL 携带 clientKey 和目标播放地址；workers.dev 在部分网络下不可达，需走代理。
+# 未命中密钥时返回空 200，让客户端回退到 v1/player，由上面的 response 脚本去广告。
+youtube.request.init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback\?(?:[^#]*&)?ack(?:=[^&#]*)?(?:&[^#]*)?$,requires-body=1,max-size=-1,binary-body-mode=1,timeout=20,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js,argument="{"captionLang":"off"}"
+
+# 处理 log_event 的 content-encoding / hot-hash 请求头，配合密钥缓存。
+youtube.request.log_event = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event(?:\?[^#]*)?$,requires-body=1,max-size=-1,binary-body-mode=1,timeout=20,script-path=https://raw.githubusercontent.com/Maasea/sgmodule/65075cdb388fc5e3094afd7e7314c67b243f3525/Script/Youtube/youtube.request.js
+
+[MITM]
+
+hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com
+
+# 排查：
+# 1. 打开「数据」/ 连接日志，播放视频，确认 youtubei.googleapis.com 显示为已解密 (HTTPS)，
+#    且没有 youtubei.googleapis.com / googlevideo.com 的 UDP 连接成功建立。
+# 2. 看到 youtube.response 脚本执行记录，才说明去广告链路生效。
+# 3. 若播放转圈：先注释 ad_break 那行；仍转圈再注释 youtube.request.init 整行，重连复测。
+# 4. Apple TV 版 YouTube 主要走 www.youtube.com，本模块不解密该域名（解密会导致无法连接），
+#    因此 Apple TV 上的视频广告基本无法去除。
+# 5. 若 YouTube 对你的账号启用了服务端拼接广告（广告与正片同一视频流），
+#    任何 MITM 模块都无法去除，只能等上游更新或使用 Premium。
